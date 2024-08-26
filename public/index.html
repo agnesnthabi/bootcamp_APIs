@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API and AlpineJS Widget</title>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('phoneBillWidget', () => ({
+                billString: '',
+                callPrice: 2.75,
+                smsPrice: 0.65,
+                total: null,
+                error: null,
+
+                async getTotalBill() {
+                    this.error = null; // Clear previous errors
+
+                    try {
+                        const response = await fetch('/api/phonebill/total', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ bill: this.billString })
+                        });
+
+                        if (!response.ok) throw new Error('Network response was not ok');
+
+                        const data = await response.json();
+                        this.total = data.total;
+                    } catch (err) {
+                        this.error = 'Failed to fetch total bill: ' + err.message;
+                        this.total = null;
+                    }
+                },
+
+                async updatePrices() {
+                    if (this.callPrice < 0 || this.smsPrice < 0) {
+                        this.error = 'Price cannot be negative';
+                        return;
+                    }
+
+                    this.error = null; // Clear previous errors
+
+                    try {
+                        const responseCall = await fetch('/api/phonebill/price', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ type: 'call', price: this.callPrice })
+                        });
+                        if (!responseCall.ok) throw new Error('Network response was not ok');
+                        const dataCall = await responseCall.json();
+                        console.log(dataCall.message);
+
+                        const responseSms = await fetch('/api/phonebill/price', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ type: 'sms', price: this.smsPrice })
+                        });
+                        if (!responseSms.ok) throw new Error('Network response was not ok');
+                        const dataSms = await responseSms.json();
+                        console.log(dataSms.message);
+
+                    } catch (err) {
+                        this.error = 'Failed to update prices: ' + err.message;
+                    }
+                }
+            }));
+
+            Alpine.data('wordGameWidget', () => ({
+                sentence: '',
+                longestWord: '',
+                shortestWord: '',
+                sum: 0,
+                error: null,
+
+                async analyzeSentence() {
+                    this.error = null; // Clear previous errors
+
+                    try {
+                        const response = await fetch(`/api/word_game?sentence=${encodeURIComponent(this.sentence)}`);
+                        if (!response.ok) throw new Error('Network response was not ok');
+
+                        const data = await response.json();
+                        this.longestWord = data.longestWord;
+                        this.shortestWord = data.shortestWord;
+                        this.sum = data.sum;
+                    } catch (err) {
+                        this.error = 'Failed to analyze sentence: ' + err.message;
+                    }
+                }
+            }));
+            
+            Alpine.data('airtimeWidget' , () => ( {
+                usage: '',
+                available: 0,
+                result: null,
+                error: null,
+                init() {
+                    console.log(this.usage);
+                    
+                },
+                async calculateAirtime() {
+                    this.result = null;
+                    this.error = null;
+
+                    if (this.available <= 0) {
+                        this.error = 'Available airtime must be greater than 0.';
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/api/enough', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                usage: this.usage,
+                                available: this.available
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+
+                        const data = await response.json();
+
+                        this.result = data.result;
+                    } catch (err) {
+                        this.error = 'Failed to calculate airtime. Please check your input and try again.';
+                        console.error(err);
+                    }
+                }
+            })
+        )
+        })
+    </script>
+</head>
+<body>
+    <!-- Phone Bill Widget -->
+    <div x-data="phoneBillWidget" class="widget">
+        <h1>Phone Bill Calculator</h1>
+        
+        <label for="billString">Enter bill string (e.g., call,sms,call):</label>
+        <input type="text" id="billString" x-model="billString" placeholder="call,sms,call">
+
+        <button @click="getTotalBill()">Get Total Bill</button>
+
+        <div x-show="total !== null">
+            <h2>Total Bill: R<span x-text="total"></span></h2>
+        </div>
+
+        <div x-show="error" style="color: red;">
+            <p x-text="error"></p>
+        </div>
+
+        <hr>
+
+        <h2>Update Prices</h2>
+
+        <label for="callPrice">Call Price:</label>
+        <input type="number" id="callPrice" x-model.number="callPrice" step="0.01" min="0">
+
+        <label for="smsPrice">SMS Price:</label>
+        <input type="number" id="smsPrice" x-model.number="smsPrice" step="0.01" min="0">
+
+        <button @click="updatePrices()">Update Prices</button>
+    </div>
+
+    <!-- Word Game Widget -->
+    <div x-data="wordGameWidget" class="widget">
+        <h1>Word Game Analyzer</h1>
+        
+        <label for="sentence">Enter sentence:</label>
+        <input type="text" id="sentence" x-model="sentence" placeholder="Type your sentence">
+
+        <button @click="analyzeSentence()">Analyze Sentence</button>
+
+        <div x-show="longestWord">
+            <h2>Longest Word: <span x-text="longestWord"></span></h2>
+            <h2>Shortest Word: <span x-text="shortestWord"></span></h2>
+            <h2>Sum of Word Lengths: <span x-text="sum"></span></h2>
+        </div>
+
+        <div x-show="error" style="color: red;">
+            <p x-text="error"></p>
+        </div>
+    </div>
+
+     <!-- Enough airtime Widget -->
+    <div x-data="airtimeWidget()" class="widget">
+        <h2>Airtime Calculator</h2>
+        <label for="usage">Projected Usage:</label>
+        <p x-text="usage"></p>
+        <input type="text" id="usage" x-model="usage" placeholder="e.g., call,sms,call">
+
+        <label for="available">Available Airtime (R):</label>
+        <input type="number" id="available" x-model.number="available" placeholder="e.g., 50" min="0">
+
+        <button @click="calculateAirtime" :disabled="available <= 0">Calculate</button>
+
+        <div class="result" x-show="result !== null">
+            <h3>Result:</h3>
+            <p x-text="'Remaining Airtime: R' + result"></p>
+        </div>
+
+        <div class="error" x-show="error !== null">
+            <p x-text="error"></p>
+        </div>
+    </div>
+</body>
+</html>
+

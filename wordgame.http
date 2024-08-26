@@ -1,0 +1,35 @@
+### Test Word Game API
+GET http://localhost:3000/api/word_game?sentence=I love solving complicated games
+###
+
+### Test the total phone bill calculation
+POST http://localhost:3000/api/phonebill/total
+Content-Type: application/json
+
+{
+    "bill": "call,sms,call"
+}
+###
+
+### Test getting the current prices
+GET http://localhost:3000/api/phonebill/prices
+###
+
+### Test updating the price of SMS
+POST http://localhost:3000/api/phonebill/price
+Content-Type: application/json
+
+{
+    "type": "sms",
+    "price": 0.85
+}
+###
+
+### Test for enough airtime
+POST  http://localhost:3000/api/enough
+Content-Type: application/json
+
+{
+  "usage": "call,sms,call",
+  "available": 30
+}
