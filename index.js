@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 
 import { longestWord, shortestWord, wordLengths } from './bootcamp.js';
 import { enoughAirtime } from './bootcamp.js';
